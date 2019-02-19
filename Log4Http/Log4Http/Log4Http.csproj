@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.3</TargetFramework>
+    <Product>Log4Http</Product>
+    <Description>A simple HttpAppender for log4net</Description>
+    <PackageId>Log4Http</PackageId>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <PackageReleaseNotes>headers are working now,
+reintroduced content,
+now sending requests in intervals</PackageReleaseNotes>
+    <Version>0.3.0</Version>
+    <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Company>Log4Http</Company>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Authors>Log4Http</Authors>
+    <PackageLicenseUrl>https://github.com/aaatschecksche/Log4Http/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/aaatschecksche/Log4Http</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.8" />
+  </ItemGroup>
+
+</Project>
