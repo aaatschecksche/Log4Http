@@ -6,10 +6,8 @@
     <Description>A simple HttpAppender for log4net</Description>
     <PackageId>Log4Http</PackageId>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <PackageReleaseNotes>headers are working now,
-reintroduced content,
-now sending requests in intervals</PackageReleaseNotes>
-    <Version>0.3.0</Version>
+    <PackageReleaseNotes>now using timer to send the requests</PackageReleaseNotes>
+    <Version>0.3.1</Version>
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <FileVersion>1.0.0.0</FileVersion>
     <Company>Log4Http</Company>

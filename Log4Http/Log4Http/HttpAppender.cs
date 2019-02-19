@@ -19,42 +19,51 @@
             public string Value { get; set; }
         }
 
-        private bool IsClosing;
-        private string CurrentLog;
-        private readonly object LockObject = new object ();
-        private ManualResetEvent ResetEvent;
-        public List<RequestHeader> Headers = new List<RequestHeader>();
+        private string _currentLog;
+        private readonly object _lockObject = new object ();
+        private Timer _messageTimer;
+        private ManualResetEvent _resetEvent;
+        private List<RequestHeader> _headers = new List<RequestHeader>();
+        private uint _sendIntervalMinutes;
+        private int _sendIntervalMS => (int) SendIntervalMinutes * 60 * 1000;
 
         // Config Values
         public string Url { get; set; }
         public string Content { get; set; }
-        public uint SendIntervalMinutes { get; set; }
+
+        public uint SendIntervalMinutes
+        {
+            get
+            {
+                return _sendIntervalMinutes;
+            }
+
+            set
+            {
+                _sendIntervalMinutes = value;
+                Start ();
+            }
+        }
+
         public RequestHeader Header
         {
-            set => Headers.Add (value);
+            set => _headers.Add (value);
         }
 
         public bool DebugMode { get; set; } = false;
 
-        public HttpAppender ()
-        {
-            CurrentLog = "";
-            ResetEvent = new ManualResetEvent (false);
-
-            Start ();
-        }
 
         private void Start ()
         {
-            var thread = new Thread (MessageLoop);
-            thread.Start ();
+            _resetEvent = new ManualResetEvent (false);
+            _messageTimer = new Timer (MessageLoop, null, _sendIntervalMS, _sendIntervalMS);
         }
 
         protected override void OnClose ()
         {
-            IsClosing = true;
+            _resetEvent.WaitOne (5000);
 
-            ResetEvent.WaitOne (5000);
+            _messageTimer.Dispose ();
 
             base.OnClose ();
         }
@@ -63,9 +72,9 @@
         {
             var renderedMessage = RenderMessage (loggingEvent);
 
-            lock (LockObject)
+            lock (_lockObject)
             {
-                CurrentLog += renderedMessage;
+                _currentLog += renderedMessage;
             }            
         }
 
@@ -78,40 +87,27 @@
             }
         }
 
-        private async void MessageLoop ()
+        private async void MessageLoop (object state)
         {
-            while (!IsClosing)
-            {
-                uint intervalCounter = 0;
-                while (intervalCounter <= SendIntervalMinutes * 60 * 1000)
-                {
-                    if (IsClosing)
-                        break;
-
-                    Thread.Sleep (1000);
-                    intervalCounter += 1000;
-                }
-
-                await PerformRequest ();
-            }
-
-            ResetEvent.Set ();
+            await PerformRequest ();
         }
 
         private async Task PerformRequest()
         {
-            if (CurrentLog == "")
+            if (_currentLog == "")
                 return;
+
+            _resetEvent.Reset ();
 
             using (HttpClient client = new HttpClient ())
             {
                 try
                 {
                     string content;
-                    lock (LockObject)
+                    lock (_lockObject)
                     {
-                        content = Content.Replace ("%messages", WebUtility.UrlEncode(CurrentLog));
-                        CurrentLog = "";
+                        content = Content.Replace ("%messages", WebUtility.UrlEncode(_currentLog));
+                        _currentLog = "";
                     }
                    
                     Debug.WriteLineIf (DebugMode, "HttpAppender sending Request");
@@ -119,7 +115,7 @@
 
                     var requestContent = new StringContent (content);
                     requestContent.Headers.Clear ();
-                    foreach (var pair in Headers)
+                    foreach (var pair in _headers)
                         requestContent.Headers.Add (pair.Name, pair.Value);
 
                     var result = await client.PostAsync (Url, requestContent);
@@ -136,6 +132,8 @@
                     Debug.WriteLineIf (DebugMode, "Log4Http Exception: " + ex);
                 }
             }
+
+            _resetEvent.Set ();
         }
     }
 }
